@@ -39,7 +39,7 @@ prism.run([
                     type: 'series',
                     metadata: {
                         types: ['measures'],
-                        maxitems: -1
+                        maxitems: 1
                     },
                     itemAttributes: ["color"],
                     allowedColoringTypes: function () { 
@@ -65,29 +65,32 @@ prism.run([
             
             var panel = widget.metadata.panel(toolTipPanelName);
             var panel2 = widget.metadata.panel(current);
-         
-            if (panel2 && !panel2?.items?.[0]) {
+            console.log(current)
+            if( current !=='Additional Data 5'){
+                if (panel2 && !panel2?.items?.[0] ) {
               
-                var widgetPanel = window["dashboard-base"].models.widgetPanel;
-                panel = widgetPanel.CreateFrom({
-                    type: "series",
-                    name: current,
-                    title: current,
-                    items: []
-                });
-              
-                // widget.metadata.panels.push(panel);
-            }else{
-              
-                var widgetPanel = window["dashboard-base"].models.widgetPanel;
-                panel = widgetPanel.CreateFrom({
-                    type: "series",
-                    name: toolTipPanelName,
-                    title: toolTipPanelName,
-                    items: []
-                });
-                widget.metadata.panels.push(panel);
+                    var widgetPanel = window["dashboard-base"].models.widgetPanel;
+                    panel = widgetPanel.CreateFrom({
+                        type: "series",
+                        name: current,
+                        title: current,
+                        items: []
+                    });
+                  
+                    // widget.metadata.panels.push(panel);
+                }else{
+                  
+                    var widgetPanel = window["dashboard-base"].models.widgetPanel;
+                    panel = widgetPanel.CreateFrom({
+                        type: "series",
+                        name: toolTipPanelName,
+                        title: toolTipPanelName,
+                        items: []
+                    });
+                    widget.metadata.panels.push(panel);
+                }
             }
+         
             ensurePanelManifest(panel, widget);
             $bindOnce(widget, "processresult", addValuesToIndicatorPoint);
         }
