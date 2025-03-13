@@ -206,8 +206,8 @@ function generateTooltipContent(dataPanels) {
         const color = prism.activeWidget?.queryResult?.value?.color || "#000"; // Tránh lỗi khi `color` không có
 
         content += `
-            <div style="font-weight: bold; color: #333; font-size: 14px; padding: 5px;">${panelTitle}</div>
-            <div style="font-size: 16px; color: ${color}; font-weight: bold; padding: 5px;">${panelText}</div>
+            <div style="color: #333; font-size: 14px; padding: 5px;">${panelTitle}</div>
+            <div style="font-size: 14px; color: ${color}; padding: 5px;">${panelText}</div>
         `;
 
         if (index < array.length - 1) {
