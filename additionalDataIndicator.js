@@ -1,39 +1,15 @@
 prism.run([
     'plugin-AdditionalInfoTooltip.services.bindOnce',
     function ($bindOnce) {
-        var toolTipPanelName = "Additional Data";
+        const MAX_PANELS = 5;
+        const BASE_PANEL_NAME = "Additional Data";
 
-        function getNextTooltipPanelName(widget) {
-            if (!widget.metadata || !widget.metadata.panels) return "Additional Data";
-            let maxNumber = 0;
-            widget.metadata.panels.forEach(panel => {
-                let match = panel.name.match(/Additional Data (\d+)/);
-                if (match) {
-                    let num = parseInt(match[1]);
-                    if (!isNaN(num) && num > maxNumber) maxNumber = num;
-                }
-            });
-            return `Additional Data ${maxNumber + 1}`;
-        }
-
-        function getCurrentTooltipPanelName(widget) {
-            if (!widget.metadata || !widget.metadata.panels) return "Additional Data";
-            let maxNumber = 0;
-            widget.metadata.panels.forEach(panel => {
-                let match = panel.name.match(/Additional Data (\d+)/);
-                if (match) {
-                    let num = parseInt(match[1]);
-                    if (!isNaN(num) && num > maxNumber) maxNumber = num;
-                }
-            });
-            return `Additional Data ${maxNumber}`;
+        function getPanelName(index) {
+            return `${BASE_PANEL_NAME} ${index}`;
         }
 
         function ensurePanelManifest(panel, widget) {
-    
-          
             if (!panel.$$manifest) {
-            
                 panel.$$manifest = {
                     name: panel.name,
                     type: 'series',
@@ -42,15 +18,10 @@ prism.run([
                         maxitems: 1
                     },
                     itemAttributes: ["color"],
-                    allowedColoringTypes: function () { 
-                        return {
-                            color : true,
-                            condition:true
-                        }; 
-                    }, 
-                    visibility: function () { 
-                        
-                        return true; }
+                    allowedColoringTypes: function () {
+                        return { color: true, condition: true };
+                    },
+                    visibility: function () { return true; }
                 };
                 if (!widget.manifest.data.panels.find(p => p.name === panel.name)) {
                     widget.manifest.data.panels.push(panel.$$manifest);
@@ -58,70 +29,64 @@ prism.run([
             }
         }
 
-        function addTooltipPanelToIndicator(widget) {
+        function createPanel(widget, panelName) {
+            const widgetPanel = window["dashboard-base"].models.widgetPanel;
+            return widgetPanel.CreateFrom({
+                type: "series",
+                name: panelName,
+                title: panelName,
+                items: []
+            });
+        }
+
+        function addTooltipPanelsToIndicator(widget) {
             if (widget.type !== "indicator") return;
-            toolTipPanelName = getNextTooltipPanelName(widget);
-            current = getCurrentTooltipPanelName(widget);
-            
-            var panel = widget.metadata.panel(toolTipPanelName);
-            var panel2 = widget.metadata.panel(current);
-            console.log(current)
-            if( current !=='Additional Data 5'){
-                if (panel2 && !panel2?.items?.[0] ) {
-              
-                    var widgetPanel = window["dashboard-base"].models.widgetPanel;
-                    panel = widgetPanel.CreateFrom({
-                        type: "series",
-                        name: current,
-                        title: current,
-                        items: []
-                    });
-                  
-                    // widget.metadata.panels.push(panel);
-                }else{
-                  
-                    var widgetPanel = window["dashboard-base"].models.widgetPanel;
-                    panel = widgetPanel.CreateFrom({
-                        type: "series",
-                        name: toolTipPanelName,
-                        title: toolTipPanelName,
-                        items: []
-                    });
+
+            for (let i = 1; i <= MAX_PANELS; i++) {
+                const panelName = getPanelName(i);
+                let panel = widget.metadata.panel(panelName);
+
+                if (!panel) {
+                    panel = createPanel(widget, panelName);
                     widget.metadata.panels.push(panel);
                 }
+
+                ensurePanelManifest(panel, widget);
             }
-         
-            ensurePanelManifest(panel, widget);
+
             $bindOnce(widget, "processresult", addValuesToIndicatorPoint);
         }
 
         function addValuesToIndicatorPoint(e, args) {
-            var panel = args.widget.metadata.panel(toolTipPanelName);
-            if (!panel || panel.items.length === 0) return;
-            if (!args.widget.additionalTooltipData) {
-                args.widget.additionalTooltipData = [];
-            }
+            args.widget.additionalTooltipData = args.widget.additionalTooltipData || [];
 
-            let additionalData = [];
-            let rowData = [];
-            let resultValue = args.result.data;
+            for (let i = 1; i <= MAX_PANELS; i++) {
+                const panelName = getPanelName(i);
+                const panel = args.widget.metadata.panel(panelName);
+                if (panel && panel.items.length > 0) {
+                    let additionalData = [];
+                    const resultValue = args.result.data;
 
-            if (resultValue && Array.isArray(resultValue)) {
-                panel.items.forEach((item, index) => {
-                    if (resultValue.length > index + 1) {
-                        rowData.push({
-                            jaql: item,
-                            data: resultValue[index + 1]
+                    if (resultValue && Array.isArray(resultValue)) {
+                        panel.items.forEach((item, index) => {
+                            if (resultValue.length > index + 1) {
+                                additionalData.push({
+                                    jaql: item,
+                                    data: resultValue[index + 1]
+                                });
+                            }
                         });
                     }
-                });
-                if (rowData.length > 0) additionalData.push(rowData);
+
+                    if (additionalData.length > 0) {
+                        args.widget.additionalTooltipData = args.widget.additionalTooltipData.concat(additionalData);
+                    }
+                }
             }
-            args.widget.additionalTooltipData = args.widget.additionalTooltipData.concat(additionalData);
         }
 
         prism.on("widgetloaded", function (e, args) {
-            addTooltipPanelToIndicator(args.widget);
+            addTooltipPanelsToIndicator(args.widget);
         });
 
         prism.on("dashboardloaded", function (e, args) {
@@ -129,6 +94,8 @@ prism.run([
         });
     }
 ]);
+
+
 
 let lastActiveWidget = null;
 let tooltip = null;
@@ -228,7 +195,7 @@ function generateTooltipContent(dataPanels) {
         padding: 10px;
         background: white;
         border-radius: 5px;
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        box-shadow: 0px 0px 5px rgba(0,0,0,0.2);
         border: 1px solid #ddd;
         min-width: 200px;
     ">`;
