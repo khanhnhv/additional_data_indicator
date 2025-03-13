@@ -220,12 +220,30 @@ function generateTooltipContent(dataPanels) {
 
 // Cập nhật vị trí tooltip
 function updateTooltipPosition(event) {
-    if (tooltip) {
-        tooltip.style.position = "absolute";
-        tooltip.style.top = event.pageY + 10 + "px";
-        tooltip.style.left = event.pageX + 10 + "px";
-        tooltip.style.zIndex = "1000";
+    if (!tooltip) return;
+
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const offsetX = 10;
+    const offsetY = 10;
+
+    let left = event.pageX + offsetX;
+    let top = event.pageY + offsetY;
+
+    const isNearRightEdge = event.pageX + tooltipRect.width + offsetX > window.innerWidth;
+    const isNearBottomEdge = event.pageY + tooltipRect.height + offsetY > window.innerHeight;
+
+    if (isNearRightEdge) {
+        left = event.pageX - tooltipRect.width - offsetX;
     }
+
+    if (isNearBottomEdge) {
+        top = event.pageY - tooltipRect.height - offsetY;
+    }
+
+    tooltip.style.position = "absolute";
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+    tooltip.style.zIndex = "1000";
 }
 
 // Xóa tooltip nếu chuột không còn trong widget hoặc tooltip
